@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and Editor configurations
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Virtual Environments
+venv/
+env/
+.env
+
+# YOLO weights
+*.pt
+yolov8n.pt
+yolov8m.pt
+
+# Data / Output
+counts_log.json
+dataset/
+runs/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
