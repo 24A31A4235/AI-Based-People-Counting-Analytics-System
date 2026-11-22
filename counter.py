@@ -20,6 +20,13 @@ Key Logic:
   d) The average movement direction is consistent
   e) Person is not in cooldown
   f) The stable_id hasn't already crossed in this direction (dedup!)
+
+FIX (2026-11-22): when a validation check fails, the recorded side is
+NOT overwritten, so the crossing is re-checked on later frames. The old
+code updated track_sides on every failed check, which permanently lost
+slow crossings (the side flips at 35px, but Check 3 needs 52.5px past
+the line). Check 4 also now uses the positions from BEFORE the side
+flip instead of a trailing window that slides past the line.
 """
 
 import time
@@ -243,36 +250,46 @@ class LineCrossingCounter:
             # Check 1: Track must be old enough
             positions = self.track_positions.get(track_id, [])
             if len(positions) < self.MIN_TRACK_AGE:
-                self.track_sides[track_id] = current_side
+                # Do NOT overwrite the recorded side: the crossing is
+                # re-checked on later frames once the track is old enough.
                 continue
 
-            # Check 2: Must not be in cooldown (both track and stable)
+            # Check 2: Must not be in cooldown (both track and stable).
+            # The recorded side is left untouched so the crossing is
+            # re-checked after the cooldown expires instead of lost.
             if self.cooldown.get(track_id, 0) > 0:
-                self.track_sides[track_id] = current_side
                 continue
             if self.stable_cooldown.get(stable_id, 0) > 0:
-                self.track_sides[track_id] = current_side
                 continue
 
             # Check 3: Verify distance from line
             distance_from_line = abs(cx - self.line_x)
             if distance_from_line < min_distance:
-                # Too close to line — might be jitter
-                self.track_sides[track_id] = current_side
+                # Too close to line — might be jitter. Do NOT overwrite
+                # the recorded side: on later frames the person is
+                # further past the line and the crossing is re-checked.
+                # (Overwriting here permanently lost slow crossings:
+                # the side flips at 35px but this check needs 52.5px.)
                 continue
 
-            # Check 4: Verify the person was "settled" on the old side
-            old_positions = [p[0] for p in positions[:-self.DIRECTION_CHECK_FRAMES]
-                             if len(positions) > self.DIRECTION_CHECK_FRAMES]
+            # Check 4: Verify the person was "settled" on the old side.
+            # Use the positions recorded BEFORE the side flip. A trailing
+            # window (e.g. the last 7 of positions[:-4]) slides forward
+            # as the person walks, so for a slow walker it is already
+            # past the line by the time Check 3 passes, and the crossing
+            # could never be confirmed. Positions before the flip are
+            # the true evidence of where the person came from.
+            flip_idx = next((i for i, p in enumerate(positions)
+                             if self.get_side(p[0]) == current_side),
+                            len(positions))
+            old_positions = [p[0] for p in positions[:flip_idx]]
             if old_positions:
-                avg_old_x = np.mean(old_positions[-self.MIN_SETTLE_FRAMES:])
+                avg_old_x = float(np.mean(old_positions))
                 if previous_side == 'left' and avg_old_x >= self.line_x - min_distance:
                     # Wasn't clearly on the left side before
-                    self.track_sides[track_id] = current_side
                     continue
                 elif previous_side == 'right' and avg_old_x <= self.line_x + min_distance:
                     # Wasn't clearly on the right side before
-                    self.track_sides[track_id] = current_side
                     continue
 
             # Check 5: Direction consistency
@@ -281,12 +298,11 @@ class LineCrossingCounter:
             elif previous_side == 'right' and current_side == 'left':
                 direction = 'right_to_left'
             else:
-                self.track_sides[track_id] = current_side
                 continue
 
             if not self._check_direction_consistency(positions, direction):
-                # Movement is not consistent — might be oscillating
-                self.track_sides[track_id] = current_side
+                # Movement is not consistent — might be oscillating.
+                # Recorded side is left untouched for re-checking.
                 continue
 
             # ========================================
