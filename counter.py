@@ -46,9 +46,9 @@ class LineCrossingCounter:
 
     # Tuning constants
     MIN_TRACK_AGE = 5          # Min frames a track must exist before counting
-    MIN_SETTLE_FRAMES = 7      # Min frames person must be settled on one side
-    MIN_DISTANCE_RATIO = 0.03  # Min distance from line as ratio of frame width
-    DIRECTION_CHECK_FRAMES = 4 # Frames to check for consistent direction
+    MIN_SETTLE_FRAMES = 5      # Min frames person must be settled on one side (was 7: too strict, missed real crossings)
+    MIN_DISTANCE_RATIO = 0.02  # Min distance from line as ratio of frame width (was 0.03)
+    DIRECTION_CHECK_FRAMES = 3 # Frames to check for consistent direction (was 4)
 
     def __init__(self, line_x, buffer_zone=35, cooldown_frames=30, frame_width=1280):
         """
@@ -120,8 +120,11 @@ class LineCrossingCounter:
             return 'on_line'
 
     def _get_min_distance(self):
-        """Get minimum distance from line required for a valid crossing."""
-        return max(self.buffer_zone * 1.5,
+        """Get minimum distance from line required for a valid crossing.
+        Relaxed from buffer*1.5 (52.5px) to buffer*0.8 (28px): the old value
+        rejected people who crossed the line but turned back or stopped
+        soon after (e.g. a person reaching only 42px past the line)."""
+        return max(self.buffer_zone * 0.8,
                    self.frame_width * self.MIN_DISTANCE_RATIO)
 
     def _check_direction_consistency(self, positions, direction):
@@ -217,9 +220,13 @@ class LineCrossingCounter:
                 self.track_positions[track_id] = []
             self.track_positions[track_id].append((cx, self.frame_num))
 
-            # Keep only last 60 positions
-            if len(self.track_positions[track_id]) > 60:
-                self.track_positions[track_id] = self.track_positions[track_id][-60:]
+            # Keep only last 600 positions (was 60). The old 60-frame cap
+            # broke Check 4 for SLOW walkers: at ~1px/frame their last 60
+            # positions are all near the line, so the "average old position"
+            # looked like it was never clearly on the old side and the
+            # crossing was rejected. 600 frames (~24s) covers a full crossing.
+            if len(self.track_positions[track_id]) > 600:
+                self.track_positions[track_id] = self.track_positions[track_id][-600:]
 
             # Skip if person is in the buffer zone
             if current_side == 'on_line':
