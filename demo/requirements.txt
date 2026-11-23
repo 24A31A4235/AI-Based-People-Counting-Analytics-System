@@ -1,0 +1,7 @@
+gradio
+spaces
+ultralytics
+opencv-python-headless
+scipy
+numpy
+torch
