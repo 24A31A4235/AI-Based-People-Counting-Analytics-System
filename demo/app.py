@@ -68,7 +68,15 @@ def process_frame(frame, line_pos, confidence):
     in_c, out_c, _ = counter.update(tracks, None)
 
     vis = bgr.copy()
-    cv2.line(vis, (line_x, 0), (line_x, H), (0, 255, 255), 2)
+    cv2.line(vis, (line_x, 0), (line_x, H), (0, 255, 255), 3)
+    # IN / OUT direction labels on either side of the middle line,
+    # so anyone watching the feed can see which way counts as IN or OUT.
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    in_label = "IN ->"
+    out_label = "<- OUT"
+    (in_w, _), _ = cv2.getTextSize(in_label, font, 0.9, 2)
+    cv2.putText(vis, in_label, (line_x - in_w - 12, 32), font, 0.9, (0, 255, 0), 2)
+    cv2.putText(vis, out_label, (line_x + 12, 32), font, 0.9, (0, 0, 255), 2)
     for tr in tracks:
         x1, y1, x2, y2 = [int(v) for v in tr.get_bbox()]
         cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 255, 0), 2)
