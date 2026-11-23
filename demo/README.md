@@ -1,5 +1,5 @@
 ---
-title: People Counting — AI-Based Analytics
+title: People Counting — Live CCTV
 emoji: 🚶
 colorFrom: green
 colorTo: blue
@@ -11,9 +11,17 @@ license: apache-2.0
 hardware: zero-a10g
 ---
 
-# People Counting — AI-Based Analytics
+# People Counting — Live CCTV
 
-Upload a video. The app detects people (YOLOv8), tracks them (SORT) and counts how many cross the yellow line. **IN** = left to right, **OUT** = right to left.
+A live people counter, like a CCTV camera at a mall entrance. Point your camera at a doorway and it counts everyone who walks in and out, in real time.
+
+**IN** = left to right, **OUT** = right to left.
+
+## How to use
+1. Open the demo and allow camera access when the browser asks.
+2. Point the camera at a doorway or entrance, so people walk **across** the frame.
+3. Set the line slider so the yellow line sits across the doorway. People who cross it are counted; people who walk along the line are not.
+4. Watch the IN / OUT counts update live. Use **Reset counts** to start a fresh count.
 
 ## What was fixed
 The original counter undercounted: on a busy street test clip it counted **6 of 8** real line crossings. Two people were missed — the only right-to-left crosser, and a slow walker who only went 42px past the line.
@@ -23,11 +31,6 @@ Root causes found by running the pipeline on a real video:
 - The position history was capped at **60 frames**. For a slow walker (~1px/frame) the last 60 positions are all near the line, so the "was clearly on the old side" check failed. Now **600 frames**.
 
 After the fix the same clip counts **8/8** real crossings, with no false counts. Detection itself was fine all along (YOLO finds ~14 people/frame; the smoothing filter only drops ~2%).
-
-## How to use
-1. Upload an MP4 video of people walking.
-2. Set the line position slider so the yellow line sits where people walk **across** it (e.g. a doorway). If people walk along the line instead of across it, they will not be counted.
-3. Click **Count people**. You get an annotated video plus IN / OUT counts.
 
 ## Stack
 YOLOv8m (person class) · SORT tracker (Kalman + Hungarian) · line-crossing counter · Gradio · ZeroGPU
