@@ -29,7 +29,7 @@ try:
 except Exception:
     HAS_WEBRTC = False
 
-MODEL_PATH = "yolov8m.pt"
+MODEL_PATH = "yolov8n.pt"
 
 # ---- Cyberpunk theme (same palette as the original PyQt5 dashboard) ----
 st.set_page_config(page_title="AI People Counter — Analytics Dashboard",
