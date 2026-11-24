@@ -1,5 +1,6 @@
 # AI-Based People Counting & Analytics System
 Note: The counter was fixed to count slow walkers correctly - it now counts 8/8 real crossings on a busy-street test (previously 6/8).
+▶ Try it live: https://ai-based-people-counting-analytics-system-production.up.railway.app
 
 A real-time people counting and analytics application featuring high-precision tracking, unique ID assignment, demographic estimation (gender and age), and a modern, dynamic dashboard UI.
 
